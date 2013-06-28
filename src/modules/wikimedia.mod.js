@@ -49,12 +49,29 @@ exports.setup = function(bot) {
 
   function wikipedia(from,respond,lang,text) {
     if (!data.languages[lang]) return respond ('Unknown language ' + lang + ', try .lang');
-  
-    bot.wgetjson('http://'+lang+'.wikipedia.org/w/api.php?action=query&generator=search&prop=extracts|info&inprop=url&exchars=500&format=json', {
-      exlimit: 'max',
-      exintro: '1',
-      gsrsearch:text,
-    }, function(error,response,obj) {
+
+    var queryurl='';
+    var queryparams={};
+
+    if (text[0]=='*' || text[0]=='~') {
+
+      var newtext='';
+      var scope='titles';
+
+      switch (text[0]) {
+	    case '*': scope='text'; newtext=text.slice(1); break;
+	    case '~': scope='nearmatch'; newtext=text.slice(1); break;
+	    default: return respond('error: internal error');
+      }
+
+      queryurl='http://'+lang+'.wikipedia.org/w/api.php?action=query&generator=search&prop=extracts|info&inprop=url&exchars=500&format=json';
+      queryparams={ exlimit: 'max', exintro: '1', gsrsearch:newtext, gsrwhat:scope };
+    } else {
+      queryurl='http://'+lang+'.wikipedia.org/w/api.php?action=query&prop=extracts|info&inprop=url&exchars=500&format=json';
+      queryparams={ exlimit: 'max', exintro: '1', titles: text };
+    }
+
+    bot.wgetjson(queryurl, queryparams, function(error,response,obj) {
       if (error) return respond('error: '+ String(error));
       //try { var obj = JSON.parse(body); } catch (e) { return respond('error: ' + String(e)); }
       if (!obj.query || !obj.query.pages) return respond('nothing found');
